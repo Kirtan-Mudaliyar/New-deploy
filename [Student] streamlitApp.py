@@ -89,7 +89,12 @@ def Anomaly_Detection(image_pil, root):
         st.error(f"Model file not found at {model_path}")
         st.stop()
 
-    model = load_model(model_path)
+    # Load the model from TensorFlow SavedModel format if needed
+    try:
+        model = tf.keras.models.load_model(model_path)
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
+        st.stop()
 
     # Preprocess the image to match Keras model input
     image = image_pil.resize((224, 224))
@@ -116,6 +121,11 @@ if submit:
         img_file_path = uploaded_file_img
     elif input_method == "Camera Input":
         img_file_path = camera_file_img
-    prediction = Anomaly_Detection(img_file_path, data_folder)
-    with st.spinner(text="This may take a moment..."):
-        st.write(prediction)
+
+    # Check if the image path is valid and submit for prediction
+    if img_file_path is not None:
+        prediction = Anomaly_Detection(img_file_path, data_folder)
+        with st.spinner(text="This may take a moment..."):
+            st.write(prediction)
+    else:
+        st.error("Please provide a valid image input.")
