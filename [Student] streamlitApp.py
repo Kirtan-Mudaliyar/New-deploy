@@ -1,30 +1,17 @@
 import streamlit as st
 import io
 import cv2
-import torch
-import torchvision.transforms as transforms
+import tensorflow as tf
+from tensorflow.keras.models import load_model
 from PIL import Image
 import numpy as np
 import os
-import torch
-import torch.nn as nn
-import torch.optim as optim
-
-from utils.dataloader import get_train_test_loaders
-from utils.model import CustomVGG
-
-
-from PIL import Image
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader, Dataset
-
 
 # Disable scientific notation for clarity
 np.set_printoptions(suppress=True)
 
 # Set up the page layout
 st.set_page_config(page_title="InspectorsAlly", page_icon=":camera:")
-
 
 st.title("InspectorsAlly")
 
@@ -83,47 +70,46 @@ elif input_method == "Camera Input":
     else:
         st.warning("Please click an image.")
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# Load the Keras model
+device = "cpu"  # Keras automatically uses the CPU or GPU if available
 
 data_folder = "./data/"
 subset_name = "leather"
 data_folder = os.path.join(data_folder, subset_name)
 
 
-def Anomaly_Detection(image_path, root):
+def Anomaly_Detection(image_pil, root):
     """
-    Given an image path and a trained PyTorch model, returns the predicted class and bounding boxes for any defects detected in the image.
+    Given an image path and a trained Keras model, returns the predicted class and bounding boxes for any defects detected in the image.
     """
+    model_path = os.path.join("weights", "keras_model.h5")
 
-    batch_size = 1
-    threshold = 0.5
+    # Load the Keras model
+    if not os.path.exists(model_path):
+        st.error(f"Model file not found at {model_path}")
+        st.stop()
 
-    subset_name = "leather"
-    model_path = f"weights/{subset_name}_model.h5"
-    model = torch.load(model_path, map_location=device)
+    model = load_model(model_path)
 
-    # Get the list of class names from the test loader
+    # Preprocess the image to match Keras model input
+    image = image_pil.resize((224, 224))
+    image = np.array(image) / 255.0  # Normalize to [0, 1]
+    
+    if image.shape[-1] == 4:
+        image = image[..., :3]  # Remove alpha channel if present
 
-    # Load the image and preprocess it
-    transform = transforms.Compose(
-        [transforms.Resize((224, 224)), transforms.ToTensor()]
-    )
-    image = transform(image_path).unsqueeze(0)
+    image = np.expand_dims(image, axis=0)  # Add batch dimension
 
-    # Get the model's predictions for the image
-    with torch.no_grad():
-        output = model(image)
-    predicted_probabilities = torch.sigmoid(output).squeeze().cpu().numpy()
+    # Predict
+    prediction = model.predict(image)[0]
 
-    # Get the predicted class label and probability
-
-    prediction_sentence = "Congratulations! Your product has been classified as a 'Good' item with no anomalies detected in the inspection images."
-    if predicted_class != "Good":
-        prediction_sentence = "We're sorry to inform you that our AI-based visual inspection system has detected an anomaly in your product."
-    return prediction_sentence
+    if prediction[0] > 0.5:
+        return "✅ Your product has been classified as a 'Perfect' item with no anomalies detected."
+    else:
+        return "⚠️ An anomaly has been detected in your product."
 
 
-submit = st.button(label="Submit a Leather Product Image")
+submit = st.button(label="Submit a Product Image")
 if submit:
     st.subheader("Output")
     if input_method == "File Uploader":
