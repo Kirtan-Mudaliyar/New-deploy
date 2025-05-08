@@ -94,33 +94,34 @@ def Anomaly_Detection(image_path, root):
     """
     Given an image path and a trained PyTorch model, returns the predicted class and bounding boxes for any defects detected in the image.
     """
-
     batch_size = 1
     threshold = 0.5
-
     subset_name = "leather"
     model_path = f"./weights/{subset_name}_model.h5"
+
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model file not found: {model_path}")
+
     model = torch.load(model_path, map_location=device)
 
-    # Get the list of class names from the test loader
-
-    # Load the image and preprocess it
-    transform = transforms.Compose(
-        [transforms.Resize((224, 224)), transforms.ToTensor()]
-    )
+    # Load and preprocess the image
+    transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
     image = transform(image_path).unsqueeze(0)
 
-    # Get the model's predictions for the image
+    # Get the model's predictions
     with torch.no_grad():
         output = model(image)
+
     predicted_probabilities = torch.sigmoid(output).squeeze().cpu().numpy()
+    predicted_class = "Good" if np.max(predicted_probabilities) < threshold else "Anomaly"
 
-    # Get the predicted class label and probability
-
-    prediction_sentence = "Congratulations! Your product has been classified as a 'Good' item with no anomalies detected in the inspection images."
-    if predicted_class != "Good":
+    # Determine the result message
+    prediction_sentence = "Congratulations! Your product has been classified as a 'Good' item with no anomalies detected."
+    if predicted_class == "Anomaly":
         prediction_sentence = "We're sorry to inform you that our AI-based visual inspection system has detected an anomaly in your product."
+
     return prediction_sentence
+
 
 
 submit = st.button(label="Submit a Leather Product Image")
