@@ -99,7 +99,7 @@ def Anomaly_Detection(image_path, root):
     threshold = 0.5
 
     subset_name = "leather"
-    model_path = f"./weights/{subset_name}_model.h5"
+    model_path = f"weights/{subset_name}_model.h5"
     model = torch.load(model_path, map_location=device)
 
     # Get the list of class names from the test loader
