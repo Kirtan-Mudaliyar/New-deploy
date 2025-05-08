@@ -4,3 +4,9 @@ libgtk2.0-dev
 libgl1
 libglib2.0-0
 libx11-dev
+libjpeg-dev
+zlib1g-dev
+libpng-dev
+libfreetype6-dev
+libopenjp2-7-dev
+
