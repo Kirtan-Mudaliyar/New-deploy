@@ -80,16 +80,16 @@ data_folder = os.path.join(data_folder, subset_name)
 
 def Anomaly_Detection(image_pil, root):
     """
-    Given an image path and a trained Keras model, returns the predicted class and bounding boxes for any defects detected in the image.
+    Given an image and a trained Keras model, returns the predicted class for anomalies.
     """
     model_path = os.path.join("weights", "keras_model.h5")
 
-    # Load the Keras model
+    # Load the Keras model (inference-only mode)
     if not os.path.exists(model_path):
         st.error(f"Model file not found at {model_path}")
         st.stop()
 
-    model = load_model(model_path)
+    model = load_model(model_path, compile=False)  # ✅ Fixed here
 
     # Preprocess the image to match Keras model input
     image = image_pil.resize((224, 224))
