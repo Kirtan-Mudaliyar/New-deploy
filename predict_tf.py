@@ -4,8 +4,14 @@ import numpy as np
 import os
 
 # Load model and class names once
-model_path = os.path.join("weights", "keras_Model.h5")
-model = load_model(model_path, compile=False)
+try:
+    model_path = os.path.join("weights", "keras_Model.h5")
+    model = load_model(model_path, compile=False)
+    print("Model loaded successfully")
+except Exception as e:
+    print(f"Error loading model: {str(e)}")
+    raise
+
 class_names = open(os.path.join("weights", "labels.txt"), "r").readlines()
 
 def predict_image(img_pil):
