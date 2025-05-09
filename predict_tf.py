@@ -1,10 +1,12 @@
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 from PIL import Image, ImageOps
 import numpy as np
+import os
 
 # Load model and class names once
-model = load_model("keras_Model.h5", compile=False)
-class_names = open("labels.txt", "r").readlines()
+model_path = os.path.join("weights", "keras_Model.h5")
+model = load_model(model_path, compile=False)
+class_names = open(os.path.join("weights", "labels.txt"), "r").readlines()
 
 def predict_image(img_pil):
     size = (224, 224)
