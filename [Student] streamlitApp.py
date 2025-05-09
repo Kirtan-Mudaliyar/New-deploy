@@ -1,70 +1,52 @@
 import streamlit as st
 from PIL import Image
-import os
 from predict_tf import predict_image
+import os
 
-# Set up the page layout
+# Configuration
 st.set_page_config(page_title="InspectorsAlly", page_icon=":camera:")
+MODEL_LOADED = os.path.exists(os.path.join("weights", "keras_Model.h5"))
+
+# UI Components
 st.title("InspectorsAlly")
+st.caption("Boost Your Quality Control with AI-Powered Inspection")
 
-st.caption(
-    "Boost Your Quality Control with InspectorsAlly - The Ultimate AI-Powered Inspection App"
-)
-
-st.write(
-    "Try clicking a product image and watch how an AI Model will classify it between Good / Anomaly."
-)
-
+# Sidebar
 with st.sidebar:
-    img = Image.open("./docs/overview_dataset.jpg")
-    st.image(img)
-    st.subheader("About InspectorsAlly")
-    st.write(
-        "InspectorsAlly is a powerful AI-powered application designed to help businesses streamline their quality control inspections..."
-    )
+    try:
+        st.image(Image.open("./docs/overview_dataset.jpg"))
+    except:
+        st.warning("Dataset overview image not found")
+    st.subheader("About")
+    st.write("AI-powered quality control inspection system")
 
-# Define the function to load images
-def load_uploaded_image(file):
-    img = Image.open(file)
-    return img
-
-# Sidebar input
-st.subheader("Select Image Input Method")
+# Image Input
 input_method = st.radio(
-    "options", ["File Uploader", "Camera Input"], label_visibility="collapsed"
+    "Select input method:",
+    ["File Upload", "Camera"],
+    horizontal=True
 )
 
-# Load image
-uploaded_file_img = None
-camera_file_img = None
+img = None
+if input_method == "File Upload":
+    uploaded = st.file_uploader("Choose image", type=["jpg", "jpeg", "png"])
+    if uploaded:
+        img = Image.open(uploaded)
+        st.image(img, caption="Uploaded Image", width=300)
+else:
+    cam = st.camera_input("Take a picture")
+    if cam:
+        img = Image.open(cam)
+        st.image(img, caption="Captured Image", width=300)
 
-if input_method == "File Uploader":
-    uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
-    if uploaded_file is not None:
-        uploaded_file_img = load_uploaded_image(uploaded_file)
-        st.image(uploaded_file_img, caption="Uploaded Image", width=300)
-        st.success("Image uploaded successfully!")
+# Prediction
+if st.button("Analyze Image") and MODEL_LOADED:
+    if img:
+        with st.spinner("Analyzing..."):
+            result = predict_image(img)
+            st.subheader("Result")
+            st.markdown(result)
     else:
-        st.warning("Please upload an image file.")
-
-elif input_method == "Camera Input":
-    st.warning("Please allow access to your camera.")
-    camera_image_file = st.camera_input("Click an Image")
-    if camera_image_file is not None:
-        camera_file_img = load_uploaded_image(camera_image_file)
-        st.image(camera_file_img, caption="Camera Input Image", width=300)
-        st.success("Image clicked successfully!")
-    else:
-        st.warning("Please click an image.")
-
-# Predict
-submit = st.button(label="Submit a Product Image")
-if submit:
-    st.subheader("Output")
-    img_file = uploaded_file_img if input_method == "File Uploader" else camera_file_img
-    if img_file is None:
-        st.error("No image provided.")
-    else:
-        with st.spinner(text="Running prediction..."):
-            prediction = predict_image(img_file)
-            st.write(prediction)
+        st.warning("Please provide an image first")
+elif not MODEL_LOADED:
+    st.error("Model not found. Please ensure keras_Model.h5 exists in weights/ folder")
