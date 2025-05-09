@@ -1,16 +1,24 @@
 from keras.models import load_model
 from PIL import Image, ImageOps
 import numpy as np
+import os
 
-# Load model and class names once
-model = load_model("keras_Model.h5", compile=False)
-class_names = open("labels.txt", "r").readlines()
+# Set paths
+model_path = os.path.join("weights", "keras_Model.h5")
+labels_path = os.path.join("weights", "labels.txt")
+
+# Load model
+model = load_model(model_path, compile=False)
+
+# Load class labels
+class_names = open(labels_path, "r").readlines()
 
 def predict_image(img_pil):
     size = (224, 224)
     image = ImageOps.fit(img_pil, size, Image.Resampling.LANCZOS)
     image_array = np.asarray(image)
 
+    # Normalize image
     normalized_image_array = (image_array.astype(np.float32) / 127.5) - 1
     data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
     data[0] = normalized_image_array
