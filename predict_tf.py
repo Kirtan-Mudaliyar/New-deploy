@@ -40,7 +40,7 @@ def predict_image(img_pil):
     class_name = class_names[index].strip()
     confidence_score = round(float(prediction[0][index]) * 100, 2)
 
-    if class_name.lower() == "perfect":
+   if class_name.strip().lower() in ["good/perfect", "perfect", "good"]:
         return f"✅ This is a **Good** product. (Confidence: {confidence_score}%)"
     else:
         return f"⚠️ Detected an **Abnormal** product. (Confidence: {confidence_score}%)"
