@@ -5,7 +5,7 @@ import os
 
 # Load model and class names once
 try:
-    model_path = os.path.join("weights", "keras_Model.h5")
+    model_path = os.path.join("weights", "keras_Model")  # Updated to SavedModel directory
     model = load_model(model_path, compile=False)
     print("Model loaded successfully")
 except Exception as e:
