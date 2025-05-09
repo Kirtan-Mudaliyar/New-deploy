@@ -1,65 +1,121 @@
 import streamlit as st
+import io
+import cv2
+import tensorflow as tf
+from tensorflow.keras.models import load_model
 from PIL import Image
 import numpy as np
 import os
-from tensorflow.keras.models import load_model
 
-# Configuration
+# Disable scientific notation for clarity
+np.set_printoptions(suppress=True)
+
+# Set up the page layout
 st.set_page_config(page_title="InspectorsAlly", page_icon=":camera:")
 
-# Load model at startup
-MODEL_PATH = os.path.join("weights", "keras_Model.h5")
-LABELS_PATH = os.path.join("weights", "labels.txt")
-
-try:
-    model = load_model(MODEL_PATH, compile=False)
-    with open(LABELS_PATH, "r") as f:
-        class_names = [line.strip() for line in f.readlines()]
-except Exception as e:
-    st.error(f"Model loading failed: {str(e)}")
-    st.stop()
-
-# UI Setup
 st.title("InspectorsAlly")
-st.caption("AI-Powered Quality Inspection")
 
-# Image Input
-input_method = st.radio("Input Method", ["File Upload", "Camera"], horizontal=True)
+st.caption(
+    "Boost Your Quality Control with InspectorsAlly - The Ultimate AI-Powered Inspection App"
+)
 
-img = None
-if input_method == "File Upload":
-    uploaded = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
-    if uploaded:
-        img = Image.open(uploaded)
-        st.image(img, caption="Uploaded Image", width=300)
-else:
-    cam = st.camera_input("Take a Picture")
-    if cam:
-        img = Image.open(cam)
-        st.image(img, caption="Captured Image", width=300)
+st.write(
+    "Try clicking a product image and watch how an AI Model will classify it between Good / Anomaly."
+)
 
-# Prediction
-if st.button("Analyze"):
-    if img:
-        try:
-            # Preprocess
-            img = img.resize((224, 224))
-            img_array = np.array(img) / 255.0
-            if img_array.shape[-1] == 4:  # Remove alpha if present
-                img_array = img_array[..., :3]
-            img_array = np.expand_dims(img_array, axis=0)
-            
-            # Predict
-            with st.spinner("Analyzing..."):
-                pred = model.predict(img_array)[0]
-                confidence = round(float(np.max(pred)) * 100, 2)
-                class_name = class_names[np.argmax(pred)]
-                
-                if class_name.lower() == "perfect":
-                    st.success(f"✅ Good Product ({confidence}% confidence)")
-                else:
-                    st.error(f"⚠️ {class_name} Detected ({confidence}% confidence)")
-        except Exception as e:
-            st.error(f"Prediction failed: {str(e)}")
+with st.sidebar:
+    img = Image.open("./docs/overview_dataset.jpg")
+    st.image(img)
+    st.subheader("About InspectorsAlly")
+    st.write(
+        "InspectorsAlly is a powerful AI-powered application designed to help businesses streamline their quality control inspections. With InspectorsAlly, companies can ensure that their products meet the highest standards of quality, while reducing inspection time and increasing efficiency."
+    )
+
+    st.write(
+        "This advanced inspection app uses state-of-the-art computer vision algorithms and deep learning models to perform visual quality control inspections with unparalleled accuracy and speed. InspectorsAlly is capable of identifying even the slightest defects, such as scratches, dents, discolorations, and more on the Leather Product Images."
+    )
+
+
+# Define the functions to load images
+def load_uploaded_image(file):
+    img = Image.open(file)
+    return img
+
+
+# Set up the sidebar
+st.subheader("Select Image Input Method")
+input_method = st.radio(
+    "options", ["File Uploader", "Camera Input"], label_visibility="collapsed"
+)
+
+# Check which input method was selected
+if input_method == "File Uploader":
+    uploaded_file = st.file_uploader(
+        "Choose an image file", type=["jpg", "jpeg", "png"]
+    )
+    if uploaded_file is not None:
+        uploaded_file_img = load_uploaded_image(uploaded_file)
+        st.image(uploaded_file_img, caption="Uploaded Image", width=300)
+        st.success("Image uploaded successfully!")
     else:
-        st.warning("Please provide an image first")
+        st.warning("Please upload an image file.")
+
+elif input_method == "Camera Input":
+    st.warning("Please allow access to your camera.")
+    camera_image_file = st.camera_input("Click an Image")
+    if camera_image_file is not None:
+        camera_file_img = load_uploaded_image(camera_image_file)
+        st.image(camera_file_img, caption="Camera Input Image", width=300)
+        st.success("Image clicked successfully!")
+    else:
+        st.warning("Please click an image.")
+
+# Load the Keras model
+device = "cpu"  # Keras automatically uses the CPU or GPU if available
+
+data_folder = "./data/"
+subset_name = "leather"
+data_folder = os.path.join(data_folder, subset_name)
+
+
+def Anomaly_Detection(image_pil, root):
+    """
+    Given an image and a trained Keras model, returns the predicted class for anomalies.
+    """
+    model_path = os.path.join("weights", "keras_model.h5")
+
+    # Load the Keras model (inference-only mode)
+    if not os.path.exists(model_path):
+        st.error(f"Model file not found at {model_path}")
+        st.stop()
+
+    model = load_model(model_path, compile=False)  # ✅ Fixed here
+
+    # Preprocess the image to match Keras model input
+    image = image_pil.resize((224, 224))
+    image = np.array(image) / 255.0  # Normalize to [0, 1]
+    
+    if image.shape[-1] == 4:
+        image = image[..., :3]  # Remove alpha channel if present
+
+    image = np.expand_dims(image, axis=0)  # Add batch dimension
+
+    # Predict
+    prediction = model.predict(image)[0]
+
+    if prediction[0] > 0.5:
+        return "✅ Your product has been classified as a 'Perfect' item with no anomalies detected."
+    else:
+        return "⚠️ An anomaly has been detected in your product."
+
+
+submit = st.button(label="Submit a Product Image")
+if submit:
+    st.subheader("Output")
+    if input_method == "File Uploader":
+        img_file_path = uploaded_file_img
+    elif input_method == "Camera Input":
+        img_file_path = camera_file_img
+    prediction = Anomaly_Detection(img_file_path, data_folder)
+    with st.spinner(text="This may take a moment..."):
+        st.write(prediction)
