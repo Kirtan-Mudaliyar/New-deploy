@@ -4,27 +4,30 @@ import numpy as np
 import os
 import tensorflow as tf
 
-# Print TensorFlow version for debugging
+# Debug print
 print(f"TensorFlow version: {tf.__version__}")
 
-# Load model and class names once
+# Load model
 try:
-    model_path = os.path.join("weights", "keras_Model")  # Points to SavedModel directory
-    # Check if the model directory exists and has the expected files
+    model_path = os.path.join("weights", "keras_Model")
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model directory not found at {model_path}")
     if not os.path.exists(os.path.join(model_path, "saved_model.pb")):
         raise FileNotFoundError(f"saved_model.pb not found in {model_path}")
     if not os.path.exists(os.path.join(model_path, "variables")):
         raise FileNotFoundError(f"variables directory not found in {model_path}")
+    
     print(f"Loading model from {model_path}")
     model = load_model(model_path, compile=False)
     print("Model loaded successfully")
+
 except Exception as e:
     print(f"Error loading model: {str(e)}")
     raise
 
-class_names = open(os.path.join("weights", "labels.txt"), "r").readlines()
+# Load labels
+with open(os.path.join("weights", "labels.txt"), "r") as f:
+    class_names = [line.strip() for line in f.readlines()]
 
 def predict_image(img_pil):
     size = (224, 224)
@@ -37,10 +40,10 @@ def predict_image(img_pil):
 
     prediction = model.predict(data)
     index = np.argmax(prediction)
-    class_name = class_names[index].strip()
+    class_name = class_names[index]
     confidence_score = round(float(prediction[0][index]) * 100, 2)
 
-   if class_name.strip().lower() in ["good/perfect", "perfect", "good"]:
+    if class_name.strip().lower() in ["good/perfect", "perfect", "good"]:
         return f"✅ This is a **Good** product. (Confidence: {confidence_score}%)"
     else:
         return f"⚠️ Detected an **Abnormal** product. (Confidence: {confidence_score}%)"
