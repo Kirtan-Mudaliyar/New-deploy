@@ -2,10 +2,22 @@ from tensorflow.keras.models import load_model
 from PIL import Image, ImageOps
 import numpy as np
 import os
+import tensorflow as tf
+
+# Print TensorFlow version for debugging
+print(f"TensorFlow version: {tf.__version__}")
 
 # Load model and class names once
 try:
-    model_path = os.path.join("weights", "keras_Model")  # Updated to SavedModel directory
+    model_path = os.path.join("weights", "keras_Model")  # Points to SavedModel directory
+    # Check if the model directory exists and has the expected files
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model directory not found at {model_path}")
+    if not os.path.exists(os.path.join(model_path, "saved_model.pb")):
+        raise FileNotFoundError(f"saved_model.pb not found in {model_path}")
+    if not os.path.exists(os.path.join(model_path, "variables")):
+        raise FileNotFoundError(f"variables directory not found in {model_path}")
+    print(f"Loading model from {model_path}")
     model = load_model(model_path, compile=False)
     print("Model loaded successfully")
 except Exception as e:
