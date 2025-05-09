@@ -1,3 +1,7 @@
 [theme]
 base = "dark"
-primaryColor = "#f39c12"
+primaryColor = "#f39c12"        # Vibrant orange-gold for buttons and highlights
+backgroundColor = "#0f1117"     # Rich dark background
+secondaryBackgroundColor = "#1e222d"  # Dark gray-blue cards/sidebar
+textColor = "#f0f0f0"           # Light gray text
+font = "sans serif"
